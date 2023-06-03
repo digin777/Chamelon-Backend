@@ -2,18 +2,56 @@ const express = require("express");
 const AdminRouter = express.Router();
 var Section = require(`../../models/section`);
 const SectionRoutes = require('./section/SectionRoutes')
-AdminRouter.use('/:section',SectionRoutes)
-// AdminRouter.post('/addsectionData', async (req, res) => {
-//     const { section, data } = req.body;
-//     data.section_config = await JSON.parse(data.section_config)
-//     try {
-//         let SectionInstance = new Section(data);
-//         await SectionInstance.save()
-//         res.json({ success: true, message: 'Record added sucessfully' })
-//     } catch (error) {
-//         res.json({ success: false, message: `filed to add record` })
-//     }
-// });
+const customRoutes =require('./customRoutes')
+
+
+AdminRouter.post('/getColumnConfig',(req,res)=>{
+    const {section}=req.body;
+    const Section = require(`../../models/section`);
+    const aggregate_query=[
+        {$match:{section_alias:`${section}`}},
+        {
+                $project: {
+                 _id:false, 
+                  columns: {
+                    $filter:{
+                        input:"$section_config.columns",
+                        as:"columns",
+                        cond:{
+                            "$eq":[
+                                "$$columns.list",true
+                             ]
+                           }
+                        }
+                    },
+                    pagination:"$section_config.pagination",
+                    per_pagecount:"$section_config.per_pagecount",
+                    status:true,
+                    
+               }
+          }
+     ];
+     Section.aggregate(aggregate_query)
+     .then(result=>{
+        result=result[0];
+         if(!result) 
+            throw new Error("No Result");
+        //  var {columns} = result;
+        //  columns=columns.map(element => {
+        //     return {
+        //         title: element.label,
+        //         width: 100,
+        //         dataIndex: element.field,
+        //         key: element.field,
+        //     };
+        // });
+        // result.columns=columns;
+        res.json({success:true,data:result});
+     }).catch(err=>{
+         res.json({success:false,message:"No result found"});
+     });
+
+});
 
 AdminRouter.post('/getSectionConfig', async (req, res) => {
     const { section } = req.body;
@@ -28,6 +66,7 @@ AdminRouter.post('/getSectionConfig', async (req, res) => {
         "section_config.columns.source":1,
         "section_config.columns.additional":1,
         "section_config.columns.custom_felid":1,
+        "section_config.columns.source_from":1,
         "section_config.columns.placeholder":1,
         "section_config.columns.custom_felid":1,
          "_id": 0
@@ -39,5 +78,7 @@ AdminRouter.post('/getSectionConfig', async (req, res) => {
         res.json({ success: false, message: `filed to add record` })
     }
 });
+AdminRouter.use('/customRoutes',customRoutes)
+AdminRouter.use('/:section',SectionRoutes);
 module.exports = AdminRouter;
 

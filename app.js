@@ -37,7 +37,7 @@ app.use('/assets', express.static('assets'))
 app.use('/user',userRoutes);
 app.use('/admin',adminRoutes);
 app.get('/', (req, res) => {
-    res.send('Hello World!')
+    res.send('Hello World!');
 })
 
 app.listen(port, () => {
